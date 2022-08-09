@@ -4,6 +4,13 @@ import pandas as pd
 # # from sqlalchemy import create_engine
 # from django.core.management.base import BaseCommand
 
+class TimeStampedModel(models.Model):
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
 
 class PredResults(models.Model):
     name = models.CharField(max_length=80)
@@ -78,3 +85,18 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+# 유저 프로필과 위시리스트의 연결고리
+# 각 커스텀의 이름 기록
+class Custom(TimeStampedModel):
+    custom_name = models.CharField(verbose_name="custom_name", max_length=255, null = True)
+
+# 하나의 커스텀 안에는 여러 위시리스트를 담을 수 있다.
+class Wishlist(TimeStampedModel):
+    custom = models.ForeignKey(Custom, on_delete = models.CASCADE, related_name = 'wishlist', null=True)
+    product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, related_name = 'wishlist', null=True)
+
+    def __str__(self):
+        return f'{self.custom} {self.product}'
+
+# custom.wishlist를 통해 역참조 가능

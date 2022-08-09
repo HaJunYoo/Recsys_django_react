@@ -1,19 +1,22 @@
 import ast
 from timeit import default_timer as timer
+from django.db.models import Q
 
 import numpy as np
 import pandas as pd
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render,  get_object_or_404
+
 from konlpy.tag import Okt
 from nltk.tokenize import word_tokenize
 from predict.embedding import *
 from predict.list import *
-from predict.models import PredResults
+from predict.models import PredResults, Product, Wishlist, Custom
 from predict.serializers import PredSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from sklearn.metrics.pairwise import cosine_similarity
+
 
 tokenizer = Okt()
 
@@ -291,6 +294,19 @@ def view_results(request):
         serializer = PredSerializer(data, many=True)
         # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
         return Response(serializer.data)
+
+
+
+@api_view(['GET', 'POST'])
+def choice_results(request):
+    if request.method == "POST":
+        recommend_name = str(request.POST.get('recommend_name'))
+        custom = str(request.POST.get('custom'))
+        product = Product.objects.filter(Q(name__contains = recommend_name))[0]
+        custom = Custom.objects.filter(Q(custom_name__contains = custom))[0]
+        if recommend_name == product.name :
+            item = get_object_or_404(Product, pk=product.id)
+            Wishlist.objects.create(custom=custom, product = item)
 
 
 def view_wordcloud(request):

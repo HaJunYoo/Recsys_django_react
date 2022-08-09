@@ -16,6 +16,9 @@ from pathlib import Path
 import environ
 import os
 
+# import os
+# os.environ.get("DJANGO_SETTINGS_MODULE")
+
 env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False)
