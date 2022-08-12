@@ -13,3 +13,5 @@ urlpatterns = [
     path('results/', views.view_results, name='results'),
     path('wordcloud/', views.view_wordcloud, name='wordcloud'),
 ]
+
+

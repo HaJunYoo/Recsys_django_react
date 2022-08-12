@@ -2,7 +2,7 @@ Django==4.0.3
 djangorestframework==3.13.1
 django-cors-headers==3.11.0
 django-debug-toolbar==3.5.0
-environ
+django-environ
 nltk
 gensim
 sklearn

@@ -180,6 +180,12 @@ def predict(request):
     else:
         return render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
 
+# @api_view(['GET'])
+# def view_topic(request):
+#     data = {'category_list': category_list, 'coordi_list': coordi_list}
+
+
+
 
 # image classification view 함수
 @api_view(['GET', 'POST'])
@@ -286,17 +292,27 @@ def img_predict(request):
         return render(request, 'image_predict.html', {'list': category_list})
 
 
-@api_view(['GET', 'POST'])
+
+# @api_view(['GET', 'POST'])
+# def view_results(request):
+#     # Submit prediction and show all
+#     if request.method == "GET":
+#         data = PredResults.objects.all()
+#         serializer = PredSerializer(data, many=True)
+#         # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
+#         return Response(serializer.data)
+
 def view_results(request):
     # Submit prediction and show all
-    if request.method == "GET":
-        data = PredResults.objects.all()
-        serializer = PredSerializer(data, many=True)
-        # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
-        return Response(serializer.data)
+
+    data = PredResults.objects.all()
+
+    return render(request, "results.html", {"dataset" : data})
+
+# custom을 생성하는 함수를 만들어야한다.
 
 
-
+# 추천된 항목에서 선택된 항목들을 wishlist에 추가하는 함수
 @api_view(['GET', 'POST'])
 def choice_results(request):
     if request.method == "POST":
