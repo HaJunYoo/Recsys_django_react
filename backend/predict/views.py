@@ -7,7 +7,7 @@ import pandas as pd
 from django.http import JsonResponse
 from django.shortcuts import render,  get_object_or_404
 
-from konlpy.tag import Okt
+# from konlpy.tag import Okt
 from nltk.tokenize import word_tokenize
 from predict.embedding import *
 from predict.list import *
@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-tokenizer = Okt()
+# tokenizer = Okt()
 
 
 ##이미지 featur를 저장한 csv파일을 불러오는 함수
@@ -124,10 +124,10 @@ def predict(request):
         # Receive data from client(input)
         # gender = str(request.POST.get('gender'))
         # age = int(request.POST.get('age'))
-        main_category = str(request.POST.get('main_category'))
-        coordi = str(request.POST.get('coordi'))
-        input_text = str(request.POST.get('input_text'))
-        top_n = int(request.POST.get('topn'))
+        main_category = str(request.POST.get('main_category')) # 로직, 로직
+        coordi = str(request.POST.get('coordi')) # 코디,코디
+        input_text = str(request.POST.get('input_text')) # input_text
+        top_n = int(request.POST.get('topn')) # 50
 
         # 가방,모자,상의 <= 이런 양식으로 받아온다.
         print(main_category)
