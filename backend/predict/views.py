@@ -4,8 +4,15 @@ from django.db.models import Q
 
 import numpy as np
 import pandas as pd
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+
 from django.http import JsonResponse
 from django.shortcuts import render,  get_object_or_404
+import json
+from rest_framework.parsers import JSONParser
+from django.views.decorators.csrf import csrf_exempt
 
 # from konlpy.tag import Okt
 from nltk.tokenize import word_tokenize
@@ -13,9 +20,11 @@ from predict.embedding import *
 from predict.list import *
 from predict.models import PredResults, Product, Wishlist, Custom
 from predict.serializers import PredSerializer
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from sklearn.metrics.pairwise import cosine_similarity
+
+
 
 
 # tokenizer = Okt()
@@ -117,17 +126,34 @@ def wordcloud(wc_df):
 
 
 # view 함수
-@api_view(['GET', 'POST'])
+@csrf_exempt
+@api_view(['POST'])
 def predict(request):
-    if request.POST.get('action') == 'post':
+    # if request.POST.get('action') == 'post':
+    if request.method == 'POST':
+        # unparsed_json = request.body.decode('utf-8')
+        # postData = json.loads(unparsed_json)
+        # print(postData)
+
+        data = JSONParser().parse(request)
+        print(data)
+        print(data['main_category'])
 
         # Receive data from client(input)
         # gender = str(request.POST.get('gender'))
         # age = int(request.POST.get('age'))
-        main_category = str(request.POST.get('main_category')) # 로직, 로직
-        coordi = str(request.POST.get('coordi')) # 코디,코디
-        input_text = str(request.POST.get('input_text')) # input_text
-        top_n = int(request.POST.get('topn')) # 50
+
+        # main_category = str(request.POST.get('main_category')) # 로직, 로직
+        # coordi = str(request.POST.get('coordi')) # 코디,코디
+        # input_text = str(request.POST.get('input_text')) # input_text
+        # top_n = int(request.POST.get('topn')) # 50
+
+        # {'main_category': '상의', 'coordi': '캐주얼', 'input_text': '여름', 'top_n': '30'}
+
+        main_category = str(data['main_category']) # 로직, 로직
+        coordi = str(data['coordi']) # 코디,코디
+        input_text = str(data['input_text']) # input_text
+        top_n = int(data['top_n']) # 50
 
         # 가방,모자,상의 <= 이런 양식으로 받아온다.
         print(main_category)
@@ -188,6 +214,7 @@ def predict(request):
 
 
 # image classification view 함수
+@csrf_exempt
 @api_view(['GET', 'POST'])
 def img_predict(request):
     # request.method == 'POST':
@@ -293,21 +320,21 @@ def img_predict(request):
 
 
 
-# @api_view(['GET', 'POST'])
-# def view_results(request):
-#     # Submit prediction and show all
-#     if request.method == "GET":
-#         data = PredResults.objects.all()
-#         serializer = PredSerializer(data, many=True)
-#         # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
-#         return Response(serializer.data)
-
+@api_view(['GET', 'POST'])
 def view_results(request):
     # Submit prediction and show all
+    if request.method == "GET":
+        data = PredResults.objects.all()
+        serializer = PredSerializer(data, many=True)
+        # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
+        return Response(serializer.data)
 
-    data = PredResults.objects.all()
-
-    return render(request, "results.html", {"dataset" : data})
+# def view_results(request):
+#     # Submit prediction and show all
+#
+#     data = PredResults.objects.all()
+#
+#     return render(request, "results.html", {"dataset" : data})
 
 # custom을 생성하는 함수를 만들어야한다.
 

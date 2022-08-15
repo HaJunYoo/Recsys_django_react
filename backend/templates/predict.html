@@ -132,12 +132,12 @@
         console.log(coordi_string);
 
 
-        {# submit -> 연쇄 다음 이벤트 묵살 -> ajax 실행 #}
+        //{# submit -> 연쇄 다음 이벤트 묵살 -> ajax 실행 #}
         e.preventDefault();
 
         $.ajax({
             type:'POST',
-            {#app = predict, reference url namespace => submit_prediction #}
+            //{#app = predict, reference url namespace => submit_prediction #}
 
             url:'{% url "predict:prediction_page" %}',
             data:{
