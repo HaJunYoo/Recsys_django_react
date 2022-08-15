@@ -3,6 +3,7 @@ djangorestframework==3.13.1
 django-cors-headers==3.11.0
 django-debug-toolbar==3.5.0
 django-environ
+django_filters
 pandas
 environ
 nltk

@@ -17,6 +17,8 @@ class PredResults(models.Model):
     img = models.CharField(max_length=80)
     review = models.TextField(max_length=256, default='default')
     price = models.CharField(max_length=80, default='default')
+    man = models.FloatField(default= 0.0)
+    woman = models.FloatField(default= 0.0)
 
     def __str__(self):
         return f'{self.name}'

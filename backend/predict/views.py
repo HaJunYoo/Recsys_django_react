@@ -5,6 +5,8 @@ from django.db.models import Q
 import numpy as np
 import pandas as pd
 
+from rest_framework import generics, filters
+# from django_filters.rest_framework import DjangoFilterBackend
 
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -124,29 +126,23 @@ def wordcloud(wc_df):
     # 사이즈 설정 및 화면에 출력
     ####
 
+# def predict_page1(request):
+#     render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
+#
+# def predict_page2(request):
+#     return render(request, 'image_predict.html', {'list': category_list})
 
 # view 함수
 @csrf_exempt
 @api_view(['POST'])
 def predict(request):
-    # if request.POST.get('action') == 'post':
     if request.method == 'POST':
         # unparsed_json = request.body.decode('utf-8')
         # postData = json.loads(unparsed_json)
         # print(postData)
-
         data = JSONParser().parse(request)
         print(data)
         print(data['main_category'])
-
-        # Receive data from client(input)
-        # gender = str(request.POST.get('gender'))
-        # age = int(request.POST.get('age'))
-
-        # main_category = str(request.POST.get('main_category')) # 로직, 로직
-        # coordi = str(request.POST.get('coordi')) # 코디,코디
-        # input_text = str(request.POST.get('input_text')) # input_text
-        # top_n = int(request.POST.get('topn')) # 50
 
         # {'main_category': '상의', 'coordi': '캐주얼', 'input_text': '여름', 'top_n': '30'}
 
@@ -156,8 +152,8 @@ def predict(request):
         top_n = int(data['top_n']) # 50
 
         # 가방,모자,상의 <= 이런 양식으로 받아온다.
-        print(main_category)
-        print(coordi)
+        # print(main_category)
+        # print(coordi)
 
         # coordi, category list 화
         main_category = main_category.split(",")
@@ -178,18 +174,21 @@ def predict(request):
             print('1단계 :', result)
             print('2단계 :', result.columns)
 
-            classification = result[['name', 'img', 'review', 'price']]
+            classification = result[['name', 'img', 'review', 'price','man', 'woman']]
             name = list(classification['name'])
             img = list(classification['img'])
             review = list(classification['review'])
             price = list(classification['price'])
+            woman = list(classification['woman'])
+            man = list(classification['man'])
             print(name)
 
             records = PredResults.objects.all()
             records.delete()
 
             for i in range(len(classification)):
-                PredResults.objects.create(name=name[i], img=img[i], review=review[i], price=price[i])
+                PredResults.objects.create(name=name[i], img=img[i],
+                                           review=review[i], price=price[i], woman= woman[i], man = man[i])
 
             print('DB 저장 완료')
 
@@ -203,18 +202,85 @@ def predict(request):
         except:
             return JsonResponse({'name': "해당되는 추천이 없습니다. 다시 입력해주세요"}, safe=False)
 
-    else:
-        return render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
+    # else:
+    #     return render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
+
+
+
+# view 함수
+# @csrf_exempt
+# @api_view(['GET','POST'])
+# def predict(request):
+#
+#     if request.POST.get('action') == 'post':
+#
+#         # Receive data from client(input)
+#         # gender = str(request.POST.get('gender'))
+#         # age = int(request.POST.get('age'))
+#         main_category = str(request.POST.get('main_category'))
+#         coordi = str(request.POST.get('coordi'))
+#         input_text = str(request.POST.get('input_text'))
+#         top_n = int(request.POST.get('topn'))
+#
+#         # 가방,모자,상의 <= 이런 양식으로 받아온다.
+#         print(main_category)
+#         print(coordi)
+#
+#         # coordi, category list 화
+#         main_category = main_category.split(",")
+#         coordi = coordi.split(",")
+#
+#         print('카테고리 :', main_category)
+#         print('코디 :', coordi)
+#         print('인풋 텍스트 :', input_text)
+#         print('topn : ', top_n)
+#
+#         # Make prediction
+#         try:
+#             tot_result = recsys(main_category, coordi, input_text)
+#
+#             result = tot_result[:top_n]
+#             result = result.sort_values(by=["wv_cosine", "scaled_rating", "year"], ascending=False)
+#
+#             print('1단계 :', result)
+#             print('2단계 :', result.columns)
+#
+#             classification = result[['name', 'img', 'review', 'price']]
+#             name = list(classification['name'])
+#             img = list(classification['img'])
+#             review = list(classification['review'])
+#             price = list(classification['price'])
+#             print(name)
+#
+#             records = PredResults.objects.all()
+#             records.delete()
+#
+#             for i in range(len(classification)):
+#                 PredResults.objects.create(name=name[i], img=img[i], review=review[i], price=price[i])
+#
+#             print('DB 저장 완료')
+#
+#             try:
+#                 wordcloud(result)
+#             except:
+#                 pass
+#
+#             return JsonResponse({'name': name, 'img': img}, safe=False)
+#
+#         except:
+#             return JsonResponse({'name': "해당되는 추천이 없습니다. 다시 입력해주세요"}, safe=False)
+#
+#     else:
+#         return render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
+
 
 # @api_view(['GET'])
 # def view_topic(request):
 #     data = {'category_list': category_list, 'coordi_list': coordi_list}
 
 
-
-
 # image classification view 함수
-@csrf_exempt
+# @csrf_exempt
 @api_view(['GET', 'POST'])
 def img_predict(request):
     # request.method == 'POST':
@@ -287,19 +353,22 @@ def img_predict(request):
 
             # print('7단계', type(temp['review_tagged_cleaned'][0]))
 
-            classification = temp[['name', 'img', 'review', 'price']]
-            print('10단계', classification)
+            classification = temp[['name', 'img', 'review', 'price','man', 'woman']]
             name = list(classification['name'])
             img = list(classification['img'])
             review = list(classification['review'])
             price = list(classification['price'])
-            print('11단계', name, img)
+            woman = list(classification['woman'])
+            man = list(classification['man'])
+            print(name)
+            print('10단계', classification)
 
             records = PredResults.objects.all()
             records.delete()
 
             for i in range(len(classification)):
-                PredResults.objects.create(name=name[i], img=img[i], review=review[i], price=price[i])
+                PredResults.objects.create(name=name[i], img=img[i],
+                                           review=review[i], price=price[i], woman= woman[i], man = man[i])
 
             #### Wordcloud 만들기
             try:
@@ -320,20 +389,33 @@ def img_predict(request):
 
 
 
-@api_view(['GET', 'POST'])
-def view_results(request):
-    # Submit prediction and show all
-    if request.method == "GET":
-        data = PredResults.objects.all()
-        serializer = PredSerializer(data, many=True)
-        # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
+# @api_view(['GET', 'POST'])
+# def view_results(request):
+#     # Submit prediction and show all
+#     if request.method == "GET":
+#         data = PredResults.objects.all()
+#         serializer = PredSerializer(data, many=True)
+#         # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
+#         return Response(serializer.data)
+
+class ViewResult(generics.ListCreateAPIView):
+    queryset = PredResults.objects.all()
+    serializer_class = PredSerializer
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_fields = ['woman', 'man']
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['woman', 'man']
+
+    def list(self, request):
+        # Note the use of `get_queryset()` instead of `self.queryset`
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = PredSerializer(queryset, many=True)
         return Response(serializer.data)
+
 
 # def view_results(request):
 #     # Submit prediction and show all
-#
 #     data = PredResults.objects.all()
-#
 #     return render(request, "results.html", {"dataset" : data})
 
 # custom을 생성하는 함수를 만들어야한다.
