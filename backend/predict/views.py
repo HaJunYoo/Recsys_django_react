@@ -12,6 +12,7 @@ from predict.serializers import PredSerializer
 
 ### RestFramework
 from rest_framework.decorators import api_view
+from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import generics, filters
@@ -300,46 +301,27 @@ class ViewResult(generics.ListCreateAPIView):
     ordering_fields = ['woman', 'man', 'rating', 'cosine_sim']
     search_fields = ['coordi']
 
-    # def list(self, request, *args, **kwargs):
-    #     # Note the use of `get_queryset()` instead of `self.queryset`
-    #     queryset = self.filter_queryset(self.get_queryset())
-    #     serializer = PredSerializer(queryset, many=True)
-    #     return Response(serializer.data)
-
     def list(self, request, *args, **kwargs):
+        # Note the use of `get_queryset()` instead of `self.queryset`
         queryset = self.filter_queryset(self.get_queryset())
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = PredSerializer(queryset, many=True)
         return Response(serializer.data)
+
 
 
 class ViewProduct(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = PredSerializer
+
     pagination_class = PostPageNumberPagination
-    # filter_backends = [DjangoFilterBackend]
-    # filterset_fields = ['woman', 'man']
-    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
-    ordering_fields = ['woman', 'man', 'rating', 'cosine_sim']
-    search_fields = ['name', 'coordi']
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    def get_queryset(self):
+        qs = super().get_queryset()
+        product_name = self.request.query_params.get('name', None)
+        if product_name :
+            qs = qs.filter(name__icontains = product_name)
 
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    # def get_queryset(self):
+        return qs
 
 
 
