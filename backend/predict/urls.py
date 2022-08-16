@@ -16,6 +16,8 @@ urlpatterns = [
 
     # path('results/', views.view_results, name='results'),
     path('results/', views.ViewResult.as_view(), name='results'),
+    path('product/', views.ViewProduct.as_view(), name='product'),
+
     path('wordcloud/', views.view_wordcloud, name='wordcloud'),
 ]
 

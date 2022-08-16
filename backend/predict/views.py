@@ -1,3 +1,4 @@
+from collections import OrderedDict
 
 from django.db.models import Q
 from django.http import JsonResponse
@@ -11,6 +12,7 @@ from predict.serializers import PredSerializer
 
 ### RestFramework
 from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import generics, filters
 # from django_filters.rest_framework import DjangoFilterBackend
@@ -104,22 +106,34 @@ def predict(request):
             print('1단계 :', result)
             print('2단계 :', result.columns)
 
-            classification = result[['name', 'img', 'review', 'price','man', 'woman']]
+            classification = result[['name', 'img', 'review', 'price', 'man', 'woman', 'scaled_rating', 'coordi', 'wv_cosine']]
+            classification["coordi"] = classification["coordi"].apply(lambda x: make_list(x))
+
             name = list(classification['name'])
             img = list(classification['img'])
             review = list(classification['review'])
             price = list(classification['price'])
             woman = list(classification['woman'])
             man = list(classification['man'])
+            rating = list(classification['scaled_rating'])
+            coordi = list(classification['coordi'])  # coordi는 리스트 of 리스트
+            cosine_sim = list(classification['wv_cosine'])
+
             print(name)
+            print(coordi)
 
             records = PredResults.objects.all()
             records.delete()
 
             for i in range(len(classification)):
                 PredResults.objects.create(name=name[i], img=img[i],
-                                           review=review[i], price=price[i], woman= woman[i], man = man[i])
-
+                                           review=review[i], price=price[i],
+                                           woman=woman[i], man=man[i],
+                                           rating=rating[i], cosine_sim=cosine_sim[i],
+                                           coordi=' '.join(coordi[i]),
+                                           # coordi={'coordi': coordi[i]}
+                )
+                # coordi = {'coordi': coordi[i]})
             print('DB 저장 완료')
 
             try:
@@ -127,7 +141,7 @@ def predict(request):
             except:
                 pass
 
-            return JsonResponse({'name': name, 'img': img}, safe=False)
+            return JsonResponse({'name': name}, safe=False)
 
         except:
             return JsonResponse({'name': "해당되는 추천이 없습니다. 다시 입력해주세요"}, safe=False)
@@ -211,23 +225,32 @@ def img_predict(request):
 
             # print('7단계', type(temp['review_tagged_cleaned'][0]))
 
-            classification = temp[['name', 'img', 'review', 'price','man', 'woman']]
+            classification = temp[['name', 'img', 'review', 'price','man', 'woman', 'scaled_rating', 'coordi', 'wv_cosine']]
+
             name = list(classification['name'])
             img = list(classification['img'])
             review = list(classification['review'])
             price = list(classification['price'])
             woman = list(classification['woman'])
             man = list(classification['man'])
+            rating = list(classification['scaled_rating'])
+            coordi = list(classification['coordi']) # coordi는 리스트 of 리스트
+            cosine_sim = list(classification['wv_cosine'])
+
             print(name)
-            print('10단계', classification)
+            print(coordi)
 
             records = PredResults.objects.all()
             records.delete()
 
             for i in range(len(classification)):
                 PredResults.objects.create(name=name[i], img=img[i],
-                                           review=review[i], price=price[i], woman= woman[i], man = man[i])
-
+                                           review=review[i], price=price[i],
+                                           woman= woman[i], man = man[i],
+                                           rating= rating[i], cosine_sim = cosine_sim[i],
+                                           coordi= ' '.join(coordi[i]) )
+                                           # coordi= {'coordi': coordi[i]} )
+                                           # coordi = {'coordi': coordi[i]})
             #### Wordcloud 만들기
             try:
                 wordcloud(temp)
@@ -252,19 +275,72 @@ def img_predict(request):
 #         # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
 #         return Response(serializer.data)
 
+
+class PostPageNumberPagination(PageNumberPagination):
+    page_size = 8
+    # page_size_query_param = 'page_size'
+    # max_page_size = 1000
+
+    def get_paginated_response(self, data):
+        return Response(OrderedDict([
+            ('postList', data),
+            ('pageCnt', self.page.paginator.num_pages), # 수정
+            ('CurPage', self.page.number), # 수정
+        ]))
+
+
+
 class ViewResult(generics.ListCreateAPIView):
     queryset = PredResults.objects.all()
     serializer_class = PredSerializer
+    pagination_class = PostPageNumberPagination
     # filter_backends = [DjangoFilterBackend]
     # filterset_fields = ['woman', 'man']
-    filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['woman', 'man']
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields = ['woman', 'man', 'rating', 'cosine_sim']
+    search_fields = ['coordi']
 
-    def list(self, request):
-        # Note the use of `get_queryset()` instead of `self.queryset`
+    # def list(self, request, *args, **kwargs):
+    #     # Note the use of `get_queryset()` instead of `self.queryset`
+    #     queryset = self.filter_queryset(self.get_queryset())
+    #     serializer = PredSerializer(queryset, many=True)
+    #     return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        serializer = PredSerializer(queryset, many=True)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class ViewProduct(generics.ListCreateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = PredSerializer
+    pagination_class = PostPageNumberPagination
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_fields = ['woman', 'man']
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields = ['woman', 'man', 'rating', 'cosine_sim']
+    search_fields = ['name', 'coordi']
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    # def get_queryset(self):
+
 
 
 # 추천된 항목에서 선택된 항목들을 wishlist에 추가하는 함수

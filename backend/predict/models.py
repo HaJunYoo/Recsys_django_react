@@ -1,8 +1,7 @@
 # from django.contrib.postgres.fields import ArrayField
 from django.db import models
 import pandas as pd
-# # from sqlalchemy import create_engine
-# from django.core.management.base import BaseCommand
+
 
 class TimeStampedModel(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
@@ -11,6 +10,8 @@ class TimeStampedModel(models.Model):
     class Meta:
         abstract = True
 
+def jsonfield_default_value():
+    return {'coordi' : list()}
 
 class PredResults(models.Model):
     name = models.CharField(max_length=80)
@@ -19,19 +20,13 @@ class PredResults(models.Model):
     price = models.CharField(max_length=80, default='default')
     man = models.FloatField(default= 0.0)
     woman = models.FloatField(default= 0.0)
+    rating = models.FloatField(default= 0.0)
+    # coordi = models.JSONField(null=True, default = jsonfield_default_value)
+    coordi = models.CharField(max_length=80, default='default')
+    cosine_sim = models.FloatField(default=0.0)
 
     def __str__(self):
         return f'{self.name}'
-
-
-# class Command(BaseCommand):
-#     def handle(self, *args, **options):
-#         columns = ['id', 'tag_title', 'tag_price','tag_image_url']
-#         df = pd.read_csv('predict/data/product.csv', index_col='id', names=columns, header=0)
-#
-#         engine = create_engine('sqlite://///Users/jujeonghan/Developer/did_it_walk/db.sqlite3')
-#         df.to_sql('모델명'._meta.db_table, if_exists='replace' ,con=engine, index=False)
-
 
 '''
 id
