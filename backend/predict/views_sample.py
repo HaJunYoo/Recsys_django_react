@@ -306,3 +306,83 @@ def view_wordcloud(request):
 
 def view_topic(request):
     return render(request, "topic_modeling.html")
+
+
+# view 함수
+# @csrf_exempt
+# @api_view(['GET','POST'])
+# def predict(request):
+#
+#     if request.POST.get('action') == 'post':
+#
+#         # Receive data from client(input)
+#         # gender = str(request.POST.get('gender'))
+#         # age = int(request.POST.get('age'))
+#         main_category = str(request.POST.get('main_category'))
+#         coordi = str(request.POST.get('coordi'))
+#         input_text = str(request.POST.get('input_text'))
+#         top_n = int(request.POST.get('topn'))
+#
+#         # 가방,모자,상의 <= 이런 양식으로 받아온다.
+#         print(main_category)
+#         print(coordi)
+#
+#         # coordi, category list 화
+#         main_category = main_category.split(",")
+#         coordi = coordi.split(",")
+#
+#         print('카테고리 :', main_category)
+#         print('코디 :', coordi)
+#         print('인풋 텍스트 :', input_text)
+#         print('topn : ', top_n)
+#
+#         # Make prediction
+#         try:
+#             tot_result = recsys(main_category, coordi, input_text)
+#
+#             result = tot_result[:top_n]
+#             result = result.sort_values(by=["wv_cosine", "scaled_rating", "year"], ascending=False)
+#
+#             print('1단계 :', result)
+#             print('2단계 :', result.columns)
+#
+#             classification = result[['name', 'img', 'review', 'price']]
+#             name = list(classification['name'])
+#             img = list(classification['img'])
+#             review = list(classification['review'])
+#             price = list(classification['price'])
+#             print(name)
+#
+#             records = PredResults.objects.all()
+#             records.delete()
+#
+#             for i in range(len(classification)):
+#                 PredResults.objects.create(name=name[i], img=img[i], review=review[i], price=price[i])
+#
+#             print('DB 저장 완료')
+#
+#             try:
+#                 wordcloud(result)
+#             except:
+#                 pass
+#
+#             return JsonResponse({'name': name, 'img': img}, safe=False)
+#
+#         except:
+#             return JsonResponse({'name': "해당되는 추천이 없습니다. 다시 입력해주세요"}, safe=False)
+#
+#     else:
+#         return render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
+
+
+# @api_view(['GET'])
+# def view_topic(request):
+#     data = {'category_list': category_list, 'coordi_list': coordi_list}
+
+
+# def view_results(request):
+#     # Submit prediction and show all
+#     data = PredResults.objects.all()
+#     return render(request, "results.html", {"dataset" : data})
+
+# custom을 생성하는 함수를 만들어야한다.

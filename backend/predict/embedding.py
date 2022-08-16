@@ -140,3 +140,70 @@ def recsys(main_category, coordi, keyword):
     recsys_df = recsys_df.sort_values(by=["wv_cosine"], ascending=False)
 
     return recsys_df
+
+
+
+################ 이미지 처리 feature extraction #######################
+
+##이미지 featur를 저장한 csv파일을 불러오는 함수
+def load_img_feature():
+    img_feature = pd.read_csv("predict/data/img_feature.csv", index_col=0)
+    return img_feature
+
+
+img_df = load_img_feature()
+
+## 이미지 유사도로 검색 - 총 100개의 유사 제품 리스트 return
+# input data: 검색 시 텍스트 유사도 검색 시 가장 관련 있는 제품명
+# 유사도 측정 방식: 유클리디안 거리: no1(input data의 feature)과 items(no1을 포함한 모든 아이템의 feature) 사이의 거리 측정
+# output data: 이미지 기준 input data와 가장 유사한 제품 100개 리스트 (제품명만)
+
+def img_sim(img_feature, name):
+    ## L2 norm 방식으로 유사도 측정
+    # input data name의 feature 불러오기
+    no1 = img_feature.loc[img_feature['name'] == name, "0":"255"].values
+    items = img_feature.loc[:, "0":"255"].values
+
+    # 이미지 유사도 거리 계산
+    dists = np.linalg.norm(items - no1, axis=1)
+
+    # 유클리디안 거리가 가장 가까운 2000개의 상품명 리스트 추출
+    idxs = np.argsort(dists)[:2000]
+    scores = [img_feature.loc[idx, "name"] for idx in idxs]
+
+    return scores
+
+
+############################
+# 상품 중복 제거
+def remove_dupe_dicts(l):
+    return [dict(t) for t in {tuple(d.items()) for d in l}]
+
+
+def wordcloud(wc_df):
+    #### Wordcloud 만들기
+    from wordcloud import WordCloud
+    from collections import Counter
+    string_list = wc_df['review_tagged_cleaned']
+
+    try:
+        string_list = string_list.apply(lambda x: ast.literal_eval(x))
+    except:
+        pass
+
+    word_list = []
+    for words in string_list:
+        for word in words:
+            if len(word) > 1:
+                word_list.append(word)
+    # 가장 많이 나온 단어부터 40개를 저장한다.
+    counts = Counter(word_list)
+    tags = counts.most_common(20)
+    font = 'static/fonts/NanumSquareL.otf'
+
+    word_cloud = WordCloud(font_path=font, background_color='black', max_font_size=400,
+                           colormap='prism').generate_from_frequencies(dict(tags))
+    word_cloud.to_file('static/무신사.png')
+    print('wordcloud 완료')
+    # 사이즈 설정 및 화면에 출력
+    ####

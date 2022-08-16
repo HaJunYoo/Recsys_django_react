@@ -1,75 +1,37 @@
-import ast
-from timeit import default_timer as timer
+
 from django.db.models import Q
-
-import numpy as np
-import pandas as pd
-
-from rest_framework import generics, filters
-# from django_filters.rest_framework import DjangoFilterBackend
-
-from sklearn.metrics.pairwise import cosine_similarity
-
 from django.http import JsonResponse
 from django.shortcuts import render,  get_object_or_404
-import json
-from rest_framework.parsers import JSONParser
 from django.views.decorators.csrf import csrf_exempt
 
-# from konlpy.tag import Okt
-from nltk.tokenize import word_tokenize
 from predict.embedding import *
 from predict.list import *
 from predict.models import PredResults, Product, Wishlist, Custom
 from predict.serializers import PredSerializer
 
+### RestFramework
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import generics, filters
+# from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.parsers import JSONParser
 
-
-
-
-# tokenizer = Okt()
-
-
-##이미지 featur를 저장한 csv파일을 불러오는 함수
-def load_img_feature():
-    img_feature = pd.read_csv("predict/data/img_feature.csv", index_col=0)
-    return img_feature
-
-
-## 이미지 유사도로 검색 - 총 100개의 유사 제품 리스트 return
-# input data: 검색 시 텍스트 유사도 검색 시 가장 관련 있는 제품명
-# 유사도 측정 방식: 유클리디안 거리: no1(input data의 feature)과 items(no1을 포함한 모든 아이템의 feature) 사이의 거리 측정
-# output data: 이미지 기준 input data와 가장 유사한 제품 100개 리스트 (제품명만)
-
-def img_sim(img_feature, name):
-    ## L2 norm 방식으로 유사도 측정
-    # input data name의 feature 불러오기
-    no1 = img_feature.loc[img_feature['name'] == name, "0":"255"].values
-    items = img_feature.loc[:, "0":"255"].values
-
-    # 이미지 유사도 거리 계산
-    dists = np.linalg.norm(items - no1, axis=1)
-
-    # 유클리디안 거리가 가장 가까운 2000개의 상품명 리스트 추출
-    idxs = np.argsort(dists)[:2000]
-    scores = [img_feature.loc[idx, "name"] for idx in idxs]
-
-    return scores
-
-
+## Third Party
+import json
+from nltk.tokenize import word_tokenize
+# from konlpy.tag import Okt
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+import pandas as pd
+import ast
+from timeit import default_timer as timer
 '''
 데이터 프레임 -> 로직 -> 추천 -> 결과 
 
 뷰(view)   
-
-
-
 '''
 #############################################################
-# 데이터 선언
-
+# => 데이터 선언
 #   코사인유사도를 구한 행렬을 역순으로 정렬 -> 유사도가 높은 순의 인덱스로 정렬됨
 #   시간 복잡도가 제일 오래 걸림 => 여기서 시간을 제일 많이 소모됨 => O(n*logn)
 #   sim_sorted_ind=sim.argsort()[:,::-1]
@@ -86,51 +48,19 @@ df["tags"] = df["tags"].apply(lambda x: make_list(x))
 df["review_tagged_cleaned"] = df["review_tagged_cleaned"].apply(lambda x: make_list(x))
 df["coordi"] = df["coordi"].apply(lambda x: make_list(x))
 
-
 ######## mean_vector.npy 불러오는 것으로 아래 코드 해결
 
 # topic modeling
 # embedding.py
-
-############################
-# 상품 중복 제거
-def remove_dupe_dicts(l):
-    return [dict(t) for t in {tuple(d.items()) for d in l}]
-
-
-def wordcloud(wc_df):
-    #### Wordcloud 만들기
-    from wordcloud import WordCloud
-    from collections import Counter
-    string_list = wc_df['review_tagged_cleaned']
-
-    try:
-        string_list = string_list.apply(lambda x: ast.literal_eval(x))
-    except:
-        pass
-
-    word_list = []
-    for words in string_list:
-        for word in words:
-            if len(word) > 1:
-                word_list.append(word)
-    # 가장 많이 나온 단어부터 40개를 저장한다.
-    counts = Counter(word_list)
-    tags = counts.most_common(20)
-    font = 'static/fonts/NanumSquareL.otf'
-
-    word_cloud = WordCloud(font_path=font, background_color='black', max_font_size=400,
-                           colormap='prism').generate_from_frequencies(dict(tags))
-    word_cloud.to_file('static/무신사.png')
-    print('wordcloud 완료')
-    # 사이즈 설정 및 화면에 출력
-    ####
-
-# def predict_page1(request):
-#     render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
 #
-# def predict_page2(request):
-#     return render(request, 'image_predict.html', {'list': category_list})
+## Views.py ##################################################
+
+def predict_page1(request):
+    return render(request, 'predict.html',
+           {'category_list': category_list, 'coordi_list': coordi_list})
+
+def predict_page2(request):
+    return render(request, 'image_predict.html', {'list': category_list})
 
 # view 함수
 @csrf_exempt
@@ -206,89 +136,17 @@ def predict(request):
     #     return render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
 
 
-
-# view 함수
-# @csrf_exempt
-# @api_view(['GET','POST'])
-# def predict(request):
-#
-#     if request.POST.get('action') == 'post':
-#
-#         # Receive data from client(input)
-#         # gender = str(request.POST.get('gender'))
-#         # age = int(request.POST.get('age'))
-#         main_category = str(request.POST.get('main_category'))
-#         coordi = str(request.POST.get('coordi'))
-#         input_text = str(request.POST.get('input_text'))
-#         top_n = int(request.POST.get('topn'))
-#
-#         # 가방,모자,상의 <= 이런 양식으로 받아온다.
-#         print(main_category)
-#         print(coordi)
-#
-#         # coordi, category list 화
-#         main_category = main_category.split(",")
-#         coordi = coordi.split(",")
-#
-#         print('카테고리 :', main_category)
-#         print('코디 :', coordi)
-#         print('인풋 텍스트 :', input_text)
-#         print('topn : ', top_n)
-#
-#         # Make prediction
-#         try:
-#             tot_result = recsys(main_category, coordi, input_text)
-#
-#             result = tot_result[:top_n]
-#             result = result.sort_values(by=["wv_cosine", "scaled_rating", "year"], ascending=False)
-#
-#             print('1단계 :', result)
-#             print('2단계 :', result.columns)
-#
-#             classification = result[['name', 'img', 'review', 'price']]
-#             name = list(classification['name'])
-#             img = list(classification['img'])
-#             review = list(classification['review'])
-#             price = list(classification['price'])
-#             print(name)
-#
-#             records = PredResults.objects.all()
-#             records.delete()
-#
-#             for i in range(len(classification)):
-#                 PredResults.objects.create(name=name[i], img=img[i], review=review[i], price=price[i])
-#
-#             print('DB 저장 완료')
-#
-#             try:
-#                 wordcloud(result)
-#             except:
-#                 pass
-#
-#             return JsonResponse({'name': name, 'img': img}, safe=False)
-#
-#         except:
-#             return JsonResponse({'name': "해당되는 추천이 없습니다. 다시 입력해주세요"}, safe=False)
-#
-#     else:
-#         return render(request, 'predict.html', {'category_list': category_list, 'coordi_list': coordi_list})
-
-
-# @api_view(['GET'])
-# def view_topic(request):
-#     data = {'category_list': category_list, 'coordi_list': coordi_list}
-
-
 # image classification view 함수
-# @csrf_exempt
+@csrf_exempt
 @api_view(['GET', 'POST'])
 def img_predict(request):
-    # request.method == 'POST':
-    if request.POST.get('action') == 'post':
 
-        input_text = str(request.POST.get('input_text'))
-        top_n = int(request.POST.get('topn'))
-        main_category = str(request.POST.get('main_category'))
+    if request.method == 'POST':
+        data = JSONParser().parse(request)
+        print(data['main_category'])
+        input_text = str(data['input_text'])
+        top_n = int(data['top_n'])
+        main_category = str(data['main_category'])
 
         print(input_text, top_n, main_category)
         # Make prediction
@@ -384,10 +242,6 @@ def img_predict(request):
         except:
             return JsonResponse({'name': "해당되는 추천이 없습니다. 다시 입력해주세요"}, safe=False)
 
-    else:
-        return render(request, 'image_predict.html', {'list': category_list})
-
-
 
 # @api_view(['GET', 'POST'])
 # def view_results(request):
@@ -411,14 +265,6 @@ class ViewResult(generics.ListCreateAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = PredSerializer(queryset, many=True)
         return Response(serializer.data)
-
-
-# def view_results(request):
-#     # Submit prediction and show all
-#     data = PredResults.objects.all()
-#     return render(request, "results.html", {"dataset" : data})
-
-# custom을 생성하는 함수를 만들어야한다.
 
 
 # 추천된 항목에서 선택된 항목들을 wishlist에 추가하는 함수

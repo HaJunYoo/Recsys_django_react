@@ -139,19 +139,18 @@
             type:'POST',
             //{#app = predict, reference url namespace => submit_prediction #}
 
-            url:'{% url "predict:prediction_page" %}',
-            data:{
+            url:'{% url "predict:prediction" %}',
+            dataType : "json",
+            // 데이터를 json 문자열로 변환
+            data: JSON.stringify({
                 input_text:$('#input_text').val(),
-                topn:$('#top_n').val(),
-                {#age:$('#age').val(),#}
-                {#gender:$('#gender').val(),#}
-
+                top_n:$('#top_n').val(),
                 coordi: coordi_string,
                 main_category: main_category_string,
-
+                // Django의 form csrf 토큰을 가져온다.
                 csrfmiddlewaretoken:$('input[name=csrfmiddlewaretoken]').val(),
-                action: 'post'
-            },
+                // action: 'post'
+            }),
 
             success:function(json) {
                 {#form 보냄이 성공하면 적은 내용 사라짐#}
@@ -159,7 +158,7 @@
                 alert('POST Success!');
 
                 document.getElementById("name").innerHTML = json['name']
-                {#document.getElementById("img").innerHTML = json['img']#}
+
 
             },
             error : function(xhr,errmsg,err) {
