@@ -3,16 +3,19 @@ from collections import OrderedDict
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render,  get_object_or_404
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import ListView
 
 from predict.embedding import *
 from predict.list import *
 from predict.models import PredResults, Product, Wishlist, Custom
 from predict.serializers import PredSerializer
+from predict.serializers import PredDetailSerializer
 
 ### RestFramework
 from rest_framework.decorators import api_view
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import generics, filters
@@ -28,6 +31,9 @@ import numpy as np
 import pandas as pd
 import ast
 from timeit import default_timer as timer
+
+
+
 '''
 데이터 프레임 -> 로직 -> 추천 -> 결과 
 
@@ -56,7 +62,8 @@ df["coordi"] = df["coordi"].apply(lambda x: make_list(x))
 # topic modeling
 # embedding.py
 #
-## Views.py ##################################################
+
+## Views.py ####################################
 
 def predict_page1(request):
     return render(request, 'predict.html',
@@ -87,6 +94,9 @@ def predict(request):
         # 가방,모자,상의 <= 이런 양식으로 받아온다.
         # print(main_category)
         # print(coordi)
+
+        if input_text == '가성비' :
+            input_text = '가성'
 
         # coordi, category list 화
         main_category = main_category.split(",")
@@ -131,7 +141,7 @@ def predict(request):
                                            review=review[i], price=price[i],
                                            woman=woman[i], man=man[i],
                                            rating=rating[i], cosine_sim=cosine_sim[i],
-                                           coordi=' '.join(coordi[i]),
+                                           coordi=', '.join(coordi[i]),
                                            # coordi={'coordi': coordi[i]}
                 )
                 # coordi = {'coordi': coordi[i]})
@@ -158,10 +168,20 @@ def img_predict(request):
 
     if request.method == 'POST':
         data = JSONParser().parse(request)
-        print(data['main_category'])
+        print(data)
         input_text = str(data['input_text'])
         top_n = int(data['top_n'])
         main_category = str(data['main_category'])
+        print(input_text)
+        print(top_n)
+        print(main_category)
+        print()
+        if input_text == '가성비' :
+            input_text = '가성'
+
+        # input_text = data['input_text']
+        # top_n = data['top_n']
+        # main_category = data['main_category']
 
         print(input_text, top_n, main_category)
         # Make prediction
@@ -170,7 +190,7 @@ def img_predict(request):
             # Okt가 시간이 엄청 걸림
 
             string_list = word_tokenize(input_text)  # 리스트 형태
-            #
+
             vec_input = aggregate_vectors(string_list)
             # vec_input = word2vec.wv[input_text]
             print('1단계', vec_input[:10])
@@ -249,7 +269,7 @@ def img_predict(request):
                                            review=review[i], price=price[i],
                                            woman= woman[i], man = man[i],
                                            rating= rating[i], cosine_sim = cosine_sim[i],
-                                           coordi= ' '.join(coordi[i]) )
+                                           coordi= ', '.join(coordi[i]) )
                                            # coordi= {'coordi': coordi[i]} )
                                            # coordi = {'coordi': coordi[i]})
             #### Wordcloud 만들기
@@ -275,6 +295,68 @@ def img_predict(request):
 #         serializer = PredSerializer(data, many=True)
 #         # many => queryset에 대응. many 없으면 instance 1개가 올 것으로 기대하고 있어 에러 발생함.
 #         return Response(serializer.data)
+
+
+# @api_view(['GET', 'POST'])
+@csrf_exempt
+def view_sorted_results(request):
+    # data = JSONParser().parse(request)
+    data = request.GET.get('sort')
+    sorted_data = PredResults.objects.all()
+    print(data)
+    if data == 'rating' :
+
+        sorted_data = sorted_data.order_by('-rating')
+
+        print(sorted_data)
+        return render(request, "results.html", {"dataset": sorted_data})
+
+    elif data == 'man' :
+
+        sorted_data = sorted_data.order_by('-man')
+
+        print(sorted_data)
+        return render(request, "results.html", {"dataset": sorted_data})
+
+    elif data == 'woman' :
+
+        sorted_data = sorted_data.order_by('-woman')
+
+        print(sorted_data)
+        return render(request, "results.html", {"dataset": sorted_data})
+
+    else :
+        sorted_data = sorted_data.order_by('-cosine_sim')
+        return render(request, "results.html", {"dataset": sorted_data})
+
+
+class PostListView(ListView):
+    model = PredResults
+    template_name = 'results.html'
+    # FOLLOW THIS NAMING SCHEME <app>/<model>_<viewtype>.html
+    context_object_name = 'dataset'
+    ordering = ['-cosine_sim']
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(PostListView, self).dispatch(request, *args, **kwargs)
+
+    # def get_ordering(self):
+    #     ordering = self.request.GET.get('rating_sort')
+    #     print(ordering)
+    #     if ordering is not None :
+    #         #Order live feed events according to closest start date events at the top
+    #         return ordering
+    #     else :
+    #         ordering = '-rating'
+    #         return ordering
+
+def view_results(request):
+    # Submit prediction and show all
+    data = PredResults.objects.all()
+    return render(request, "results.html", {"dataset" : data})
+
+
 
 
 class PostPageNumberPagination(PageNumberPagination):
@@ -307,6 +389,10 @@ class ViewResult(generics.ListCreateAPIView):
         serializer = PredSerializer(queryset, many=True)
         return Response(serializer.data)
 
+
+class SeeItemView(RetrieveAPIView):
+    queryset = PredResults.objects.all()
+    serializer_class = PredDetailSerializer
 
 
 class ViewProduct(generics.ListCreateAPIView):
