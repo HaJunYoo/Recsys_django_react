@@ -1,5 +1,7 @@
 ## Django React Recommendation
 
+Django와 React, Pandas, Word2vec을 이용한 리뷰 옷 기반 추천 시스템 입니다.  
+
 ### Procedure
 
 - 8.09
@@ -55,10 +57,11 @@
 ### Stack
   - Django
   - Bootstrap
+  - React
   - word2vec => (npy 파일 이용)
   - pandas
   - sqlite
 
 ### 구현 및 보고서 
 
-[리뷰 토픽 모델링 기반 추천 시스템 Report](https://innovative-tortoise-rec-django.notion.site/Report-6ec88524b8a9488f84aed63abfe67295)
+[리뷰 토픽 모델링 기반 추천 시스템 Report](https://hajunyoo.oopy.io/6ec88524-b8a9-488f-84ae-d63abfe67295)
