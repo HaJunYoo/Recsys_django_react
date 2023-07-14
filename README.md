@@ -1,6 +1,6 @@
 # Django React Contents filtering Recommendation
 
-Django와 React, Pandas, Word2vec을 이용한 컨텐츠 필터링 기반 추천 시스템 입니다.  
+Django와 React, Pandas, Word2vec, VGG16을 이용한 컨텐츠 필터링 기반 추천 시스템 입니다.  
 
 ## 개요 및 소개
 
